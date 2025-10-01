@@ -245,6 +245,7 @@ header h2 {
  <script>
     const $ = document.querySelector.bind(document)
     const $$ = document.querySelectorAll.bind(document)
+    const PLAYER_STORAGE_KEY = 'MUSIC_PLAYER'
     const player = $('.player')
     const cd = $('.cd')
     const heading = $('header h2')
@@ -262,6 +263,7 @@ header h2 {
         isPlaying : false,
         isRandom : false,
         isRepeat : false,
+        config : JSON.parse(localStorage.getItem(PLAYER_STORAGE_KEY))|| {},
         songs :[
         {
             name : 'End Of Beginning',
@@ -315,10 +317,14 @@ header h2 {
         
         
         ],
+        setConfig: function(key, value){
+          this.config[key] = value;
+          localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(this.config))
+        },
         render: function (){
             const htmls = this.songs.map((song, index )=> {
                 return `
-                        <div class="song ${index === this.currentIndex ? 'active' :''}">
+                        <div class="song ${index === this.currentIndex ? 'active' :''}" data-index ="${index}">
                             <div class="thumb" style="background-image: url('${song.image}')">
                              </div>
                             <div class="body">
@@ -424,11 +430,13 @@ header h2 {
            // bat tat random mode
            randomBtn.onclick = function(e){
             _this.isRandom = !_this.isRandom
+            _this.setConfig('isRandom', _this.isRandom)
             randomBtn.classList.toggle('active', _this.isRandom)
            }
-           // reapet mode
+           // repeat mode
            repeatBtn.onclick = function(e){
             _this.isRepeat = !_this.isRepeat
+             _this.setConfig('isRepeat', _this.isRepeat)
             repeatBtn.classList.toggle('active', _this.isRepeat)
            }
           
@@ -442,9 +450,21 @@ header h2 {
            }
            //lang nghe click vao playlist
            playlist.onclick = function(e){
-              if(e.target.closest('.song:(.active)') || e.target.closest('.option')
+            const songNode = e.target.closest('.song:not(.active)')
+              if(songNode || e.target.closest('.option')
               ){
+                // xu li khi click vao song
+                if(songNode){
+                  _this.currentIndex = Number(songNode.dataset.index)
+                  _this.loadCurrentSong()
+                  _this.render()
+                  audio.play()
+                }
 
+                //xu li khi click vao option
+                if(e.target.closest('.option')){
+
+                }
               }
            }
 
@@ -473,6 +493,10 @@ header h2 {
             cdThumb.style.backgroundImage = `url('${this.currentSong.image}')`
             audio.src = this.currentSong.path
         },
+        loadConfig : function(){
+            this.isRandom = this.config.isRandom
+            this.isRepeat = this.config.isRepeat
+        },
         nextSong : function(){
             this.currentIndex++
             if (this.currentIndex >= this.songs.length){
@@ -499,14 +523,20 @@ header h2 {
 
 
         start: function (){
+          //gan cau hinh tu config vao object
+            this.loadConfig()
           // Định nghĩa các thuộc tính cho object
             this.defineProperties()
+          // lắng nghe xử lý các sự kiện
+            this.handleEvents()
           //tải thông tin bài hát đầu tiên
             this.loadCurrentSong()
           // render playlist
             this.render()
-          // lắng nghe xử lý các sự kiện
-            this.handleEvents()
+          // hien thi trang thai ban cua hai nut random va repeat
+            randomBtn.classList.toggle('active', this.isRandom)
+            repeatBtn.classList.toggle('active', this.isRepeat)
+
         }
     }
     app.start()
